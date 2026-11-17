@@ -1,6 +1,7 @@
 package com.xiaoyu.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xiaoyu.common.Code;
 import com.xiaoyu.common.Result;
 import com.xiaoyu.dto.GoodsDto;
 import com.xiaoyu.pojo.Goods;
@@ -40,5 +41,23 @@ public class AdminController {
     @PutMapping("/status/{goodsId}")
     public Result updateStatus(@PathVariable Long goodsId, @RequestParam Integer status) {
         return goodsService.updateGoodsStatus(goodsId, status);
+    }
+
+    // 商品详情
+    @GetMapping("/detail/{goodsId}")
+    public Result detail(@PathVariable Long goodsId) {
+        return goodsService.getGoodsDetail(goodsId);
+    }
+
+    // 删除未被历史订单引用的商品
+    @DeleteMapping("/{goodsId}")
+    public Result delete(@PathVariable Long goodsId) {
+        return goodsService.deleteGoods(goodsId);
+    }
+
+    // 管理端商品和库存统计
+    @GetMapping("/goods/statistics")
+    public Result statistics() {
+        return new Result(Code.SUCCESS, goodsService.getAdminGoodsStatistics(), "查询成功");
     }
 }

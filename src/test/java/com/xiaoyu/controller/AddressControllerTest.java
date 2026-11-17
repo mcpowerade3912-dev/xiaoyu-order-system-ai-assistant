@@ -62,6 +62,8 @@ public class AddressControllerTest {
 
         User mockUser = new User();
         mockUser.setId(1L);
+        mockUser.setRole(0);
+        mockUser.setStatus(1);
         mockUser.setLogoutTime(null);
         when(userDao.selectById(1L)).thenReturn(mockUser);
 
@@ -112,7 +114,8 @@ public class AddressControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validAddressDTO)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(Code.PARAM_ERROR));
     }
 
     @Test
@@ -123,7 +126,8 @@ public class AddressControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validAddressDTO)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(Code.PARAM_ERROR));
     }
 
     @Test
@@ -134,7 +138,8 @@ public class AddressControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validAddressDTO)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(Code.PARAM_ERROR));
     }
 
     // ==================== 编辑地址 ====================
@@ -195,7 +200,8 @@ public class AddressControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validAddressDTO)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(Code.PARAM_ERROR));
     }
 
     // ==================== 删除地址 ====================

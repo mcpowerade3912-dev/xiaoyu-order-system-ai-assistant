@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101828">
+  <title>不汐汐 · 订单与 AI 运营台</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <section class="auth-shell" id="login-view">
+    <div class="auth-story">
+      <div class="brand-lockup">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3.2 14.5 9l5.8 2.5-5.8 2.5L12 19.8 9.5 14 3.7 11.5 9.5 9 12 3.2Z"/>
+            <circle cx="18.4" cy="5.6" r="1.25"/>
+          </svg>
+        </div>
+          <div><strong data-system-name>不汐汐</strong><span>Order Intelligence</span></div>
+      </div>
+      <div class="story-copy">
+        <h1>订单与 AI<br><em>运营工作台</em></h1>
+        <p>统一管理订单、商品、用户和客户地址。</p>
+      </div>
+    </div>
+    <div class="auth-panel">
+      <div class="auth-card">
+        <div class="mobile-brand">
+          <div class="brand-mark compact"><svg viewBox="0 0 24 24"><path d="M12 3.2 14.5 9l5.8 2.5-5.8 2.5L12 19.8 9.5 14 3.7 11.5 9.5 9 12 3.2Z"/></svg></div>
+          <strong><span data-system-name>不汐汐</span>订单与 AI 运营台</strong>
+        </div>
+        <h2>管理员登录</h2>
+        <form id="login-form" autocomplete="on">
+          <label for="username">管理员账号</label>
+          <div class="field-wrap">
+            <svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+            <input id="username" name="username" placeholder="请输入用户名" autocomplete="username" required>
+          </div>
+          <label for="password">密码</label>
+          <div class="field-wrap">
+            <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <input id="password" name="password" type="password" placeholder="请输入密码" autocomplete="current-password" required>
+            <button class="reveal-password" id="reveal-password" type="button">显示</button>
+          </div>
+          <div class="form-error" id="login-error" role="alert"></div>
+          <button class="primary-button" id="login-button" type="submit">
+            <span>进入工作台</span>
+            <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </form>
+        <div class="auth-divider"><span>演示模式</span></div>
+        <button class="secondary-button" id="preview-button" type="button">打开演示数据</button>
+        <p class="security-note"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>管理员令牌仅保存在当前浏览器。</p>
+      </div>
+      <p class="auth-footer" data-system-name>不汐汐</p>
+    </div>
+  </section>
+
+  <section class="dashboard is-hidden" id="dashboard-view">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="brand-lockup">
+          <div class="brand-mark compact"><svg viewBox="0 0 24 24"><path d="M12 3.2 14.5 9l5.8 2.5-5.8 2.5L12 19.8 9.5 14 3.7 11.5 9.5 9 12 3.2Z"/></svg></div>
+          <div><strong data-system-name>不汐汐</strong><span>订单运营台</span></div>
+        </div>
+        <button class="icon-button sidebar-close" id="sidebar-close" aria-label="关闭菜单"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </div>
+      <button class="new-chat-button" id="new-chat-button"><span class="plus">✦</span><span>问 AI</span></button>
+      <nav class="nav-section" aria-label="运营模块">
+        <span class="nav-label">工作台</span>
+        <button class="nav-item active" data-view="overview">
+          <svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z"/></svg>
+          <span>经营概览</span>
+        </button>
+        <button class="nav-item" data-view="orders">
+          <svg viewBox="0 0 24 24"><path d="M3 7h18v13H3zM3 10h18M8 7V4h8v3"/></svg>
+          <span>订单管理</span><b class="nav-count" id="sidebar-pending">—</b>
+        </button>
+        <button class="nav-item" data-view="products">
+          <svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg>
+          <span>商品管理</span>
+        </button>
+        <button class="nav-item" data-view="users">
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>用户管理</span>
+        </button>
+        <button class="nav-item" data-view="addresses">
+          <svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          <span>客户地址</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+          <span>系统设置</span>
+        </button>
+        <span class="nav-label nav-label-secondary">智能运营</span>
+        <button class="nav-item" data-view="ai">
+          <svg viewBox="0 0 24 24"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3ZM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg>
+          <span>AI 运营助手</span>
+          <b class="nav-ai">AI</b>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="mini-status">
+          <span class="status-light" id="sidebar-status-light"></span>
+          <div><strong id="sidebar-status-title">正在连接</strong><span id="sidebar-status-copy">检查 AI 服务状态</span></div>
+        </div>
+        <button class="profile-card" id="profile-button">
+          <span class="avatar" id="user-avatar">管</span>
+          <span><strong id="user-name">管理员</strong><small id="profile-mode">管理员账户</small></span>
+          <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menu-button" aria-label="打开菜单"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <div class="breadcrumb"><span>运营中心</span><b>/</b><strong id="breadcrumb-current">经营概览</strong></div>
+        <div class="topbar-actions">
+          <button class="mode-chip" id="mode-chip" title="检查 AI 模式">
+            <span class="status-light"></span><span id="mode-label">检查连接</span>
+            <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v6h-6"/></svg>
+          </button>
+          <button class="topbar-ai-button" id="topbar-ai-button">问 AI</button>
+          <button class="icon-button" id="logout-button" title="退出登录"><svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/></svg></button>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <section class="app-view" id="view-overview">
+          <div class="page-intro">
+            <div>
+              <h1>经营概览</h1>
+            </div>
+            <div class="today-stamp"><span id="today-weekday">星期一</span><strong id="today-date">01月01日</strong></div>
+          </div>
+          <section class="metric-grid">
+            <article class="metric-card primary"><div class="metric-head"><span>今日成交</span><span class="metric-icon">¥</span></div><strong id="metric-revenue">—</strong><p id="metric-revenue-note">等待经营数据</p></article>
+            <article class="metric-card"><div class="metric-head"><span>待发货订单</span><span class="metric-icon blue">↗</span></div><strong id="metric-pending">—</strong><p>需要关注的履约任务</p></article>
+            <article class="metric-card"><div class="metric-head"><span>待付款订单</span><span class="metric-icon amber">◷</span></div><strong id="metric-unpaid">—</strong><p>可能产生超时取消</p></article>
+            <article class="metric-card"><div class="metric-head"><span>低库存商品</span><span class="metric-icon rose">!</span></div><strong id="metric-lowstock">—</strong><p>库存不高于 10 件的商品</p></article>
+          </section>
+          <section class="overview-grid">
+            <article class="data-card">
+              <div class="card-heading">
+                <div><strong>最近订单</strong><span>按创建时间倒序</span></div>
+                <button class="text-button" data-view="orders">查看全部</button>
+              </div>
+              <div class="table-wrap" id="overview-orders"><div class="loading-row">正在读取订单…</div></div>
+            </article>
+            <article class="data-card stock-overview-card">
+              <div class="card-heading">
+                <div><strong>库存风险</strong><span>库存不高于 10 件</span></div>
+                <button class="text-button" data-view="products">管理库存</button>
+              </div>
+              <div id="overview-stock" class="overview-stock"><div class="loading-row">正在读取库存…</div></div>
+            </article>
+          </section>
+          <section class="quick-action-grid">
+            <button class="quick-action" data-prompt="列出待发货订单">
+              <span class="quick-action-icon amber">↗</span><div><strong>处理待发货订单</strong><p>让 AI 找出当前需要履约的订单</p></div><b>→</b>
+            </button>
+            <button class="quick-action" data-prompt="库存低于10的商品有哪些">
+              <span class="quick-action-icon mint">!</span><div><strong>查看库存风险</strong><p>发现库存偏低、需要补货的商品</p></div><b>→</b>
+            </button>
+            <button class="quick-action" data-prompt="查看最近7天销售趋势">
+              <span class="quick-action-icon blue">↗</span><div><strong>总结销售趋势</strong><p>查看最近一周成交变化</p></div><b>→</b>
+            </button>
+          </section>
+        </section>
+
+        <section class="app-view is-hidden" id="view-orders">
+          <div class="module-heading">
+            <div><h1>订单管理</h1></div>
+            <button class="outline-action" id="refresh-orders-button"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v6h-6"/></svg>刷新订单</button>
+          </div>
+          <div class="filter-row" id="order-status-filters">
+            <button class="filter-chip active" data-status="">全部</button>
+            <button class="filter-chip" data-status="0">待付款</button>
+            <button class="filter-chip" data-status="1">待发货</button>
+            <button class="filter-chip" data-status="2">已发货</button>
+            <button class="filter-chip" data-status="3">已完成</button>
+            <button class="filter-chip" data-status="4">已取消</button>
+          </div>
+          <article class="data-card module-table-card">
+            <div class="table-wrap" id="orders-table"><div class="loading-row">正在读取订单…</div></div>
+            <div class="pagination" id="orders-pagination"></div>
+          </article>
+        </section>
+
+        <section class="app-view is-hidden" id="view-products">
+          <div class="module-heading">
+            <div><h1>商品管理</h1></div>
+            <button class="primary-action" id="add-product-button"><span>+</span>新增商品</button>
+          </div>
+          <section class="module-stat-grid">
+            <article><span>全部商品</span><strong id="product-total">—</strong></article>
+            <article><span>正在上架</span><strong id="product-active">—</strong></article>
+            <article><span>已下架</span><strong id="product-off">—</strong></article>
+            <article class="warning"><span>库存预警</span><strong id="product-low">—</strong></article>
+          </section>
+          <div class="toolbar-row">
+            <form class="search-box" id="product-search-form">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <input id="product-search-input" placeholder="搜索商品名称">
+            </form>
+            <button class="outline-action" id="refresh-products-button"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v6h-6"/></svg>刷新</button>
+          </div>
+          <div class="filter-row" id="product-status-filters">
+            <button class="filter-chip active" data-product-status="">全部状态</button>
+            <button class="filter-chip" data-product-status="1">上架中</button>
+            <button class="filter-chip" data-product-status="0">已下架</button>
+            <button class="filter-chip" data-product-stock="10">低库存</button>
+          </div>
+          <article class="data-card module-table-card">
+            <div class="table-wrap" id="products-table"><div class="loading-row">正在读取商品…</div></div>
+            <div class="pagination" id="products-pagination"></div>
+          </article>
+        </section>
+
+        <section class="app-view is-hidden" id="view-users">
+          <div class="module-heading">
+            <div><h1>用户管理</h1></div>
+            <button class="outline-action" id="refresh-users-button"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v6h-6"/></svg>刷新用户</button>
+          </div>
+          <div class="toolbar-row">
+            <form class="search-box" id="user-search-form">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <input id="user-search-input" placeholder="搜索用户名">
+            </form>
+          </div>
+          <article class="data-card module-table-card">
+            <div class="table-wrap" id="users-table"><div class="loading-row">正在读取用户…</div></div>
+            <div class="pagination" id="users-pagination"></div>
+          </article>
+        </section>
+
+        <section class="app-view is-hidden" id="view-addresses">
+          <div class="module-heading">
+            <div><h1>客户地址</h1></div>
+            <button class="outline-action" id="refresh-addresses-button"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v6h-6"/></svg>刷新地址</button>
+          </div>
+          <div class="toolbar-row address-toolbar">
+            <form class="search-box" id="address-search-form">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <input id="address-search-input" placeholder="搜索收件人、手机号或地址">
+            </form>
+            <form class="user-id-filter" id="address-user-filter-form">
+              <input id="address-user-id-input" type="number" min="1" placeholder="用户 ID">
+              <button type="submit">筛选</button>
+            </form>
+          </div>
+          <article class="data-card module-table-card">
+            <div class="table-wrap" id="addresses-table"><div class="loading-row">正在读取地址…</div></div>
+            <div class="pagination" id="addresses-pagination"></div>
+          </article>
+        </section>
+
+        <section class="app-view is-hidden" id="view-settings">
+          <div class="module-heading">
+            <div><h1>系统设置</h1></div>
+            <button class="outline-action" id="reload-settings-button"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v6h-6"/></svg>重新加载</button>
+          </div>
+          <form id="settings-form" class="settings-layout">
+            <section class="settings-card">
+              <div class="settings-card-head"><h2>基础设置</h2><span>保存后立即生效</span></div>
+              <div class="settings-fields">
+                <label>系统名称<input id="setting-system-name" maxlength="30" required></label>
+                <label>客服联系方式<input id="setting-support-phone" maxlength="30" placeholder="可选"></label>
+                <label>支付超时时间（分钟）<input id="setting-payment-timeout" type="number" min="5" max="1440" required></label>
+                <label>库存预警阈值<input id="setting-stock-threshold" type="number" min="0" required></label>
+                <label class="switch-field"><span><strong>自动关闭超时订单</strong><small>超过支付时间后自动取消并释放库存</small></span><input id="setting-auto-cancel" type="checkbox"><i></i></label>
+              </div>
+            </section>
+            <section class="settings-card">
+              <div class="settings-card-head"><h2>AI 接口</h2><span id="ai-key-status">正在读取</span></div>
+              <div class="settings-fields">
+                <label class="switch-field"><span><strong>启用 AI 运营助手</strong><small>关闭后使用本地业务摘要</small></span><input id="setting-ai-enabled" type="checkbox"><i></i></label>
+                <label class="full-field">接口地址<input id="setting-ai-base-url" placeholder="https://api.openai.com/v1" required></label>
+                <label>模型名称<input id="setting-ai-model" placeholder="gpt-4.1-mini" required></label>
+                <label>请求超时（秒）<input id="setting-ai-timeout" type="number" min="5" max="180" required></label>
+                <label class="full-field">API Key<input id="setting-ai-api-key" type="password" autocomplete="new-password" placeholder="留空则保持现有 Key"><small>Key 加密保存，不会在页面明文显示。</small></label>
+                <label class="clear-key-field"><input id="setting-clear-ai-key" type="checkbox"><span>清除已保存的 API Key</span></label>
+              </div>
+            </section>
+            <div class="settings-actions">
+              <span id="settings-updated-at"></span>
+              <button type="submit" class="primary-action" id="save-settings-button">保存设置</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="app-view is-hidden" id="view-ai">
+          <div class="page-intro ai-page-intro">
+            <div><h1>AI 运营助手</h1></div>
+          </div>
+          <section class="assistant-grid">
+            <div class="chat-shell">
+              <div class="chat-head">
+                <div><span class="ai-orb">✦</span><div><strong>运营分析助手</strong><span id="chat-subtitle">只读访问订单与商品数据</span></div></div>
+                <button class="ghost-button" id="clear-chat-button">清空对话</button>
+              </div>
+              <div class="messages" id="messages" aria-live="polite"></div>
+              <div class="quick-prompts" id="quick-prompts">
+                <button data-prompt="请给我一份经营概览，并提示库存风险">经营概览与风险</button>
+                <button data-prompt="列出待发货订单">待发货订单</button>
+                <button data-prompt="库存低于10的商品有哪些">库存预警</button>
+                <button data-prompt="查看最近7天销售趋势">近 7 天趋势</button>
+              </div>
+              <form class="composer" id="assistant-form">
+                <textarea id="assistant-input" rows="1" maxlength="500" placeholder="询问订单、库存或销售趋势…"></textarea>
+                <div class="composer-bottom"><span><kbd>Enter</kbd> 发送 · <kbd>Shift</kbd> + <kbd>Enter</kbd> 换行</span><button class="send-button" id="send-button" type="submit"><svg viewBox="0 0 24 24"><path d="m4 4 17 8-17 8 3-8-3-8Z"/><path d="M7 12h14"/></svg></button></div>
+              </form>
+              <p class="composer-note">AI 仅根据只读业务工具提供分析，重要决策请结合实际情况确认。</p>
+            </div>
+            <aside class="insight-rail">
+              <div class="rail-card mode-card">
+                <div class="rail-heading"><span class="rail-icon">AI</span><div><strong>智能引擎</strong><span id="engine-title">正在检测</span></div></div>
+                <div class="engine-meter"><span id="engine-meter-bar"></span></div>
+                <p id="engine-description">正在连接后端运营助手服务。</p>
+                <button id="refresh-status-button">重新检测连接</button>
+              </div>
+              <div class="rail-card">
+                <div class="rail-heading"><span class="rail-icon soft">✦</span><div><strong>可以这样问</strong><span>自然语言即可</span></div></div>
+                <ul class="prompt-suggestions">
+                  <li data-prompt="列出金额超过1000元的待发货订单">“金额超过 1000 元的待发货订单”</li>
+                  <li data-prompt="经营情况怎么样，有什么需要优先处理">“现在最需要优先处理什么？”</li>
+                  <li data-prompt="最近7天销售趋势">“总结最近一周的销售走势”</li>
+                </ul>
+              </div>
+              <div class="rail-card safety-card"><span class="safety-mark"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></span><div><strong>数据边界</strong><p>助手只执行固定只读查询，不会直接修改订单、库存或用户数据。</p></div></div>
+            </aside>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <button class="floating-ai" id="floating-ai-button">✦<span>问 AI</span></button>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  </section>
+
+  <div class="drawer-backdrop" id="detail-backdrop"></div>
+  <aside class="detail-drawer" id="order-detail-drawer">
+    <div class="drawer-head"><div><span class="eyebrow muted">ORDER DETAIL</span><h2 id="detail-title">订单详情</h2></div><button class="icon-button" id="close-detail-button">×</button></div>
+    <div id="order-detail-content"></div>
+  </aside>
+
+  <div class="modal-backdrop" id="product-modal-backdrop">
+    <div class="modal">
+      <div class="modal-head"><div><span class="eyebrow muted">PRODUCT EDITOR</span><h2 id="product-modal-title">新增商品</h2></div><button class="icon-button" id="close-product-modal">×</button></div>
+      <form id="product-form">
+        <input type="hidden" id="product-id">
+        <input type="hidden" id="product-version">
+        <label>商品名称<input id="product-name" maxlength="200" required></label>
+        <div class="form-grid"><label>价格<input id="product-price" type="number" min="0.01" step="0.01" required></label><label>库存<input id="product-stock" type="number" min="0" step="1" required></label></div>
+        <label>图片地址<input id="product-pic" maxlength="255" placeholder="https://..."></label>
+        <label>状态<select id="product-status"><option value="1">上架</option><option value="0">下架</option></select></label>
+        <div class="form-error" id="product-form-error"></div>
+        <div class="modal-actions"><button type="button" class="secondary-button" id="cancel-product-button">取消</button><button type="submit" class="primary-button" id="save-product-button">保存商品</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+  <template id="typing-template">
+    <div class="message assistant typing-message">
+      <div class="assistant-avatar">✦</div>
+      <div class="message-body"><div class="message-meta"><strong>运营助手</strong><span>正在分析</span></div><div class="typing"><span></span><span></span><span></span></div></div>
+    </div>
+  </template>
+  <script src="/app.js"></script>
+</body>
+</html>

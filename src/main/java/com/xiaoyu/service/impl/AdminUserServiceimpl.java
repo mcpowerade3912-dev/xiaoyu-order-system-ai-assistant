@@ -30,6 +30,9 @@ public class AdminUserServiceimpl implements AdminUserService {
 
     @Override
     public Result updateUserStatus(Long userId, Integer status) {
+        if (status == null || (status != 0 && status != 1)) {
+            return new Result(Code.PARAM_ERROR, null, "用户状态仅支持0冻结/1正常");
+        }
         User user = userDao.selectById(userId);
         if (user == null) {
             return new Result(Code.FAIL, null, "用户不存在");

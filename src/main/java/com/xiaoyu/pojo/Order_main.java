@@ -19,16 +19,16 @@ public class Order_main {
     private BigDecimal totalAmount;
     private BigDecimal payAmount;
     private Integer status;
-    private String payTime;
+    private LocalDateTime payTime;
     private LocalDateTime deliveryTime;
     private LocalDateTime finishTime;
     private String addressName;
     private String addressPhone;
     private String addressDetail;
     @Version
-    private String version;
+    private Integer version;
 
-    private String createTime;
-    private String updateTime;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 
 }

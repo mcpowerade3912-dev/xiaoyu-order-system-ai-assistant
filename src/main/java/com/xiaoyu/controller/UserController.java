@@ -20,8 +20,8 @@ public class UserController {
         return userService.UserLogin(loginDto);
     }
     @GetMapping("/logout")
-    public Result logout(@RequestHeader("Authorization") String token){
-        return userService.logout(token);
+    public Result logout(){
+        return userService.logout();
     }
     @PostMapping("/register")
     public Result register(@Validated @RequestBody UserRegisterDto userRegisterDto) {

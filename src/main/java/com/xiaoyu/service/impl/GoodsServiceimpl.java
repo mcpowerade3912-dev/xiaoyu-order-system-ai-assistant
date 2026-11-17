@@ -4,22 +4,33 @@ import com.alibaba.druid.util.StringUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xiaoyu.Dao.CartDao;
 import com.xiaoyu.Dao.GoodsDao;
+import com.xiaoyu.Dao.OrderItemDao;
 import com.xiaoyu.common.Code;
 import com.xiaoyu.common.Result;
 import com.xiaoyu.pojo.Goods;
+import com.xiaoyu.pojo.Order_item;
+import com.xiaoyu.pojo.UserCart;
 import com.xiaoyu.dto.GoodsDto;
 import com.xiaoyu.service.GoodsService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 public class GoodsServiceimpl implements GoodsService {
     @Resource
     private GoodsDao goodsDao;
+    @Resource
+    private CartDao cartDao;
+    @Resource
+    private OrderItemDao orderItemDao;
     /**
      * 买家端商品分页查询实现
      * @param dto
@@ -58,6 +69,12 @@ public class GoodsServiceimpl implements GoodsService {
         if(dto.getGoodsName()!=null && !StringUtils.isEmpty(dto.getGoodsName().trim())){
             queryWrapper.like(Goods::getGoodsName,dto.getGoodsName());
         }
+        if (dto.getStatus() != null) {
+            queryWrapper.eq(Goods::getStatus, dto.getStatus());
+        }
+        if (dto.getStockThreshold() != null) {
+            queryWrapper.le(Goods::getStock, dto.getStockThreshold());
+        }
         queryWrapper.orderByDesc(Goods::getCreateTime);
         return goodsDao.selectPage(page,queryWrapper);
     }
@@ -69,6 +86,11 @@ public class GoodsServiceimpl implements GoodsService {
      */
     @Override
     public Result addGoods(Goods goods) {
+        String validationError = validateGoodsForCreate(goods);
+        if (validationError != null) {
+            return new Result(Code.PARAM_ERROR, null, validationError);
+        }
+        goods.setGoodsName(goods.getGoodsName().trim());
         // 1. 查重：判断商品名称是否已存在
         LambdaQueryWrapper<Goods> repeatWrapper = new LambdaQueryWrapper<>();
         repeatWrapper.eq(Goods::getGoodsName, goods.getGoodsName().trim());
@@ -109,10 +131,15 @@ public class GoodsServiceimpl implements GoodsService {
         if (goods.getVersion() == null) {
             return new Result(Code.FAIL, null, "版本号不能为空，请刷新页面后重试");
         }
+        String validationError = validateGoodsForUpdate(goods);
+        if (validationError != null) {
+            return new Result(Code.PARAM_ERROR, null, validationError);
+        }
         String repeatMsg = "该商品名称已存在，请勿重复使用";
 
         // 2. 商品名称查重：排除自身ID，不能和其他商品重名
         if (goods.getGoodsName() != null && !goods.getGoodsName().trim().isEmpty()) {
+            goods.setGoodsName(goods.getGoodsName().trim());
             LambdaQueryWrapper<Goods> repeatWrapper = new LambdaQueryWrapper<>();
             repeatWrapper.eq(Goods::getGoodsName, goods.getGoodsName().trim())
                     .ne(Goods::getId, goods.getId()); // 排除自己
@@ -172,5 +199,104 @@ public class GoodsServiceimpl implements GoodsService {
 
         String msg = status == 1 ? "商品上架成功" : "商品下架成功";
         return new Result(Code.SUCCESS, null, msg);
+    }
+
+    private String validateGoodsForCreate(Goods goods) {
+        if (goods == null || goods.getGoodsName() == null || goods.getGoodsName().trim().isEmpty()) {
+            return "商品名称不能为空";
+        }
+        if (goods.getGoodsName().trim().length() > 200) {
+            return "商品名称不能超过200个字符";
+        }
+        if (goods.getPrice() == null || goods.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            return "商品价格必须大于0";
+        }
+        if (goods.getStock() != null && goods.getStock() < 0) {
+            return "商品库存不能小于0";
+        }
+        if (goods.getStatus() != null && goods.getStatus() != 0 && goods.getStatus() != 1) {
+            return "商品状态仅支持0下架/1上架";
+        }
+        return null;
+    }
+
+    private String validateGoodsForUpdate(Goods goods) {
+        if (goods.getGoodsName() != null) {
+            if (goods.getGoodsName().trim().isEmpty()) {
+                return "商品名称不能为空";
+            }
+            if (goods.getGoodsName().trim().length() > 200) {
+                return "商品名称不能超过200个字符";
+            }
+        }
+        if (goods.getPrice() != null && goods.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            return "商品价格必须大于0";
+        }
+        if (goods.getStock() != null && goods.getStock() < 0) {
+            return "商品库存不能小于0";
+        }
+        if (goods.getStatus() != null && goods.getStatus() != 0 && goods.getStatus() != 1) {
+            return "商品状态仅支持0下架/1上架";
+        }
+        return null;
+    }
+
+    @Override
+    public Result getGoodsDetail(Long goodsId) {
+        if (goodsId == null) {
+            return new Result(Code.PARAM_ERROR, null, "商品ID不能为空");
+        }
+        Goods goods = goodsDao.selectById(goodsId);
+        if (goods == null) {
+            return new Result(Code.FAIL, null, "商品不存在");
+        }
+        return new Result(Code.SUCCESS, goods, "查询成功");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result deleteGoods(Long goodsId) {
+        Goods goods = goodsDao.selectById(goodsId);
+        if (goods == null) {
+            return new Result(Code.FAIL, null, "商品不存在");
+        }
+        if (Integer.valueOf(1).equals(goods.getStatus())) {
+            return new Result(Code.FAIL, null, "请先下架商品再删除");
+        }
+
+        LambdaQueryWrapper<Order_item> orderItemWrapper = new LambdaQueryWrapper<>();
+        orderItemWrapper.eq(Order_item::getGoodsId, goodsId);
+        if (orderItemDao.selectCount(orderItemWrapper) > 0) {
+            return new Result(Code.FAIL, null, "商品已被历史订单引用，只能下架，不能删除");
+        }
+
+        LambdaQueryWrapper<UserCart> cartWrapper = new LambdaQueryWrapper<>();
+        cartWrapper.eq(UserCart::getGoodsId, goodsId);
+        cartDao.delete(cartWrapper);
+        if (goodsDao.deleteById(goodsId) == 0) {
+            return new Result(Code.FAIL, null, "商品删除失败，请刷新后重试");
+        }
+        return new Result(Code.SUCCESS, null, "商品删除成功");
+    }
+
+    @Override
+    public Map<String, Object> getAdminGoodsStatistics() {
+        LambdaQueryWrapper<Goods> total = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<Goods> active = new LambdaQueryWrapper<>();
+        active.eq(Goods::getStatus, 1);
+        LambdaQueryWrapper<Goods> offShelf = new LambdaQueryWrapper<>();
+        offShelf.eq(Goods::getStatus, 0);
+        LambdaQueryWrapper<Goods> lowStock = new LambdaQueryWrapper<>();
+        lowStock.eq(Goods::getStatus, 1).le(Goods::getStock, 10);
+        LambdaQueryWrapper<Goods> outOfStock = new LambdaQueryWrapper<>();
+        outOfStock.eq(Goods::getStatus, 1).le(Goods::getStock, 0);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("total", goodsDao.selectCount(total));
+        result.put("active", goodsDao.selectCount(active));
+        result.put("offShelf", goodsDao.selectCount(offShelf));
+        result.put("lowStock", goodsDao.selectCount(lowStock));
+        result.put("outOfStock", goodsDao.selectCount(outOfStock));
+        return result;
     }
 }

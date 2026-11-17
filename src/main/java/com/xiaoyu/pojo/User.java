@@ -1,6 +1,7 @@
 package com.xiaoyu.pojo;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ public class User {
     public String username;
 
 //    @TableField(exist = false)//不映射数据库字段
+    @JsonIgnore
     public String password;
 
     public String nickname;

@@ -11,13 +11,15 @@ import com.xiaoyu.service.UserService;
 import com.xiaoyu.utils.JwtUtil;
 import com.xiaoyu.utils.UserContext;
 import com.xiaoyu.vo.LoginVo;
-import io.jsonwebtoken.Claims;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 public class UserServiceimpl implements UserService {
@@ -36,12 +38,12 @@ public class UserServiceimpl implements UserService {
     @Override
     public Result UserLogin(LoginDto loginDto) {
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getUsername,loginDto.getUsername());
+        queryWrapper.eq(User::getUsername, loginDto.getUsername().trim());
         User user = userDao.selectOne(queryWrapper);
         if (user == null){
             return new Result(Code.USER_NOT_EXIST,null,"用户不存在");
         }
-        if(user.getStatus()==0){
+        if(Integer.valueOf(0).equals(user.getStatus())){
             return new Result(Code.USER_STATUS_ERROR,null,"用户被禁用");
         }
         if (!passwordEncoder.matches(loginDto.getPassword(),user.getPassword())){
@@ -66,33 +68,31 @@ public class UserServiceimpl implements UserService {
     /*
     * 用户登出服务实现*/
     @Override
-    public Result logout(String token) {
-        String realToken =token.replace("Bearer ","");
-        Claims claims = jwtUtil.parseToken(realToken);
-        Long userid = (Long) claims.get("userid");
+    public Result logout() {
+        Long userId = userContext.getUserId();
         //更新用户登出状态，标记token失效
         User updateuser = new User();
-        updateuser.setId(userid);
+        updateuser.setId(userId);
         updateuser.setLogoutTime(LocalDateTime.now());
         userDao.updateById(updateuser);
 
-        userContext.clear();
-        return new Result(Code.SUCCESS,userid,"登出成功");
+        return new Result(Code.SUCCESS,userId,"登出成功");
 
     }
     /*
     * 用户注册服务实现*/
     @Override
     public Result register(UserRegisterDto userRegisterDto) {
+        String username = userRegisterDto.getUsername().trim();
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getUsername,userRegisterDto.getUsername());
+        queryWrapper.eq(User::getUsername, username);
         User exitUser = userDao.selectOne(queryWrapper);
         if (exitUser != null){
             return new Result(Code.USERNAME_EXIST,null,"用户已存在");
         }
         //转实体类
         User user = new User();
-        user.setUsername(userRegisterDto.getUsername());
+        user.setUsername(username);
         user.setPassword(passwordEncoder.encode(userRegisterDto.getPassword()));
         user.setNickname(userRegisterDto.getNickname());
         user.setPhone(userRegisterDto.getPhone());
@@ -100,10 +100,14 @@ public class UserServiceimpl implements UserService {
         user.setStatus(1);
         user.setCreateTime(new Date());
 
-        if(userDao.insert(user) > 0) {
-            return new Result(Code.SUCCESS,userRegisterDto, "注册成功");
-        }else{
-            return new Result(Code.FAIL, null, "注册失败");
+        try {
+            userDao.insert(user);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("userId", user.getId());
+            data.put("username", user.getUsername());
+            return new Result(Code.SUCCESS, data, "注册成功");
+        } catch (DuplicateKeyException e) {
+            return new Result(Code.USERNAME_EXIST, null, "用户已存在");
         }
     }
 }

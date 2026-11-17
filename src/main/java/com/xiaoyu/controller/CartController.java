@@ -19,10 +19,15 @@ public class CartController {
 
     @GetMapping("/get")
     public Result getCart(){
-        return cartService.getListCart(null);
+        return cartService.getListCart();
     }
     @PutMapping("/update")
     public Result updateCart(@Validated @RequestBody CartDto cartDto){
         return cartService.updateCartNum(cartDto);
+    }
+
+    @DeleteMapping("/{goodsId}")
+    public Result deleteCart(@PathVariable Long goodsId){
+        return cartService.deleteCart(goodsId);
     }
 }

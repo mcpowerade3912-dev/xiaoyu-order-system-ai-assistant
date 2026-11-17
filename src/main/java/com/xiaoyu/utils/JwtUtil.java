@@ -4,17 +4,27 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-    //加密密钥
-    private final SecretKey secret = Keys.secretKeyFor(SignatureAlgorithm.HS512);
-    //有效期两小时
-    private final long expiration = 2 * 60 * 60 * 1000;
+    private final SecretKey secret;
+    private final long expiration;
+
+    public JwtUtil(@Value("${jwt.secret}") String secret,
+                   @Value("${jwt.expiration-ms:7200000}") long expiration) {
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 64) {
+            throw new IllegalArgumentException("JWT secret 至少需要 64 字节，以支持 HS512");
+        }
+        this.secret = Keys.hmacShaKeyFor(keyBytes);
+        this.expiration = expiration;
+    }
 
     //生成token:存入id,和角色
     public String generateToken(Long userid,Integer role) {
@@ -24,7 +34,7 @@ public class JwtUtil {
                 //设置头信息
                 .setHeaderParam("typ", "JWT")
                 //设置主体
-                .setSubject("xiaoyu")
+                .setSubject("buxixi")
                 //存放用户id和角色
                 .claim("userId", userid)
                 .claim("role", role)
@@ -39,21 +49,10 @@ public class JwtUtil {
       return token;
     }
     public Claims parseToken(String token) {
-        Claims claims = null;
-        try {
-            //.parser()解析器与builder对应
-            claims = Jwts.parser()
-                    //设置解密密钥
-                    .setSigningKey(secret)
-                    //解析 token，包括主体、头信息、签名信息
-                    .parseClaimsJws(token)
-                    // 取出数据
-                    .getBody();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        //返回数据
-        return claims;
+        return Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .getBody();
     }
 
 }

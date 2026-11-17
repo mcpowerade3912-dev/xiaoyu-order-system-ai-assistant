@@ -30,6 +30,12 @@ public class UserOrderController {
         return orderService.getMyOrderPage(queryDto);
     }
 
+    // 模拟支付
+    @PostMapping("/pay/{orderId}")
+    public Result payOrder(@PathVariable Long orderId) {
+        return orderService.payOrder(orderId);
+    }
+
     // 取消订单
     @PutMapping("/cancel/{orderId}")
     public Result cancelOrder(@PathVariable Long orderId) {

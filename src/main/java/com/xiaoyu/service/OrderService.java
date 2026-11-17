@@ -17,11 +17,20 @@ public interface OrderService {
     /*取消订单*/
     Result cancelOrder(Long orderId);
 
+    // 模拟支付，将待付款订单变更为待发货
+    Result payOrder(Long orderId);
+
+    // 关闭超时未支付订单并归还库存
+    int cancelExpiredOrders();
+
     // 确认收货（仅已发货可确认）
     Result confirmReceive(Long orderId);
 
     // 订单详情（联查主表+明细表）
     Result getOrderDetail(Long orderId);
+
+    // 管理员查看任意订单详情
+    Result getAdminOrderDetail(Long orderId);
 
     /*卖家端*/
     /*订单分页查询*/

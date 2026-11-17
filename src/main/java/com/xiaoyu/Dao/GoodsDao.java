@@ -18,4 +18,12 @@ public interface GoodsDao extends BaseMapper<Goods> {
     @Update("UPDATE goods SET stock = stock - #{num}, sales = sales + #{num}, version = version + 1 " +
             "WHERE id = #{goodsId} AND version = #{version} AND stock >= #{num}")
     int deductStock(@Param("goodsId") Long goodsId, @Param("num") Integer num, @Param("version") Integer version);
+
+    /**
+     * 原子归还库存并回退销量。
+     */
+    @Update("UPDATE goods SET stock = stock + #{num}, " +
+            "sales = GREATEST(sales - #{num}, 0), version = version + 1 " +
+            "WHERE id = #{goodsId}")
+    int restoreStock(@Param("goodsId") Long goodsId, @Param("num") Integer num);
 }

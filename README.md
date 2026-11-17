@@ -1,4 +1,6 @@
-# XiaoYu Order System
+# 不汐汐 Order System
+
+详细操作请查看：[使用说明](使用说明.md)。
 
 A full-featured e-commerce order management system built with Spring Boot 2.7, MyBatis-Plus, and JWT authentication. It supports a complete shopping workflow including user registration, product browsing, cart management, order placement, and an admin dashboard for managing products, orders, and users.
 
@@ -9,19 +11,23 @@ A full-featured e-commerce order management system built with Spring Boot 2.7, M
 - Product browsing with pagination and keyword search
 - Shopping cart management (add, update quantity, view)
 - Multiple shipping addresses with default address support
-- Order lifecycle: create order, cancel order, confirm receipt, view order detail
+- Order lifecycle: create, pay, cancel, ship, confirm receipt, and view detail
+- Simulated payment plus automatic closure of unpaid orders after the configured timeout
 
 **Admin Side**
 - Product CRUD with shelf status management (on/off)
-- Order management with delivery operations and real-time statistics (today's orders, total revenue)
+- Order management with detail lookup, delivery operations, and real-time statistics
 - User management with account freeze/unfreeze capability
+- Read-only AI operations assistant for natural-language order, stock, and sales analysis
+- Integrated administrator web workspace for overview, orders, inventory, users, and AI
 
 **Technical Highlights**
 - JWT-based stateless authentication with role-based access control (user vs admin)
-- Optimistic locking (`@Version`) for concurrent stock deduction and order status updates
+- Atomic conditional updates for stock deduction and order state transitions
 - ThreadLocal-based user context propagation across the request lifecycle
 - Global exception handling with unified JSON response format
-- Database schema auto-repair on startup
+- Complete, repeatable MySQL schema initialization
+- Optional OpenAI Responses API integration with a zero-key local fallback mode
 
 ## Tech Stack
 
@@ -36,7 +42,7 @@ A full-featured e-commerce order management system built with Spring Boot 2.7, M
 | Password Encryption | Spring Security Crypto | - |
 | Parameter Validation | Hibernate Validator | - |
 | Build Tool | Maven | 3.6+ |
-| Utility | Lombok | 1.18.20 |
+| Utility | Lombok | 1.18.46 |
 
 ## Architecture
 
@@ -108,13 +114,13 @@ order_system/
     │   │   ├── common/                              # Common components
     │   │   │   ├── Code.java                        #   Response status codes
     │   │   │   ├── Result.java                      #   Unified response wrapper
+    │   │   │   ├── BusinessException.java           #   Transaction-safe business error
     │   │   │   └── GlobalExceptionHandler.java      #   Global exception handler
     │   │   │
     │   │   ├── config/                              # Configuration
     │   │   │   ├── SpringMvcConfig.java             #   MVC config & interceptor registration
-    │   │   │   ├── MybatisplusConfig.java           #   MyBatis-Plus pagination plugin
+    │   │   │   ├── MybatisplusConfig.java           #   Pagination & optimistic lock
     │   │   │   ├── PasswordConfig.java              #   BCrypt password encoder bean
-    │   │   │   └── DatabaseSchemaFixer.java         #   Auto schema repair on startup
     │   │   │
     │   │   ├── interceptor/
     │   │   │   └── JwtAuthInterceptor.java          # JWT auth + role-based access control
@@ -167,12 +173,12 @@ order_system/
     │   │   ├── vo/                                  # View Objects (response)
     │   │   │   ├── LoginVo.java
     │   │   │   ├── CartVo.java
+    │   │   │   ├── OrderCreateVO.java
     │   │   │   ├── OrderDetailVO.java
     │   │   │   └── OrderStatisticsVO.java
     │   │   │
     │   │   └── utils/
     │   │       ├── JwtUtil.java                     # JWT token generation & parsing
-    │   │       ├── OrderNoutil.java                 # Unique order number generator
     │   │       └── UserContext.java                 # ThreadLocal user context
     │   │
     │   └── resources/
@@ -181,6 +187,7 @@ order_system/
     └── test/
         └── java/com/xiaoyu/
             ├── OrderSystemApplicationTests.java
+            ├── OrderClosureIntegrationTest.java
             ├── OrderSystemFullTest.java
             └── controller/
                 ├── AddressControllerTest.java
@@ -326,34 +333,25 @@ cd xiaoyu
 
 ### Step 2: Set Up the Database
 
-```sql
--- Create the database
-CREATE DATABASE order_manager DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-```
-
-Initialize the tables using the provided script:
+Create the database and all tables using the provided script:
 
 ```bash
-mysql -u root -p order_manager < fix_schema.sql
+mysql -u root -p < fix_schema.sql
 ```
 
 ### Step 3: Configure Database Connection
 
-Edit `src/main/resources/application.yml`:
+The connection is configured through environment variables, with local development defaults:
 
-```yaml
-spring:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/order_manager?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true
-    username: your_username        # Replace with your MySQL username
-    password: your_password        # Replace with your MySQL password
-    type: com.alibaba.druid.pool.DruidDataSource
-
-mybatis-plus:
-  mapper-locations: classpath:mapper/*.xml
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+```bash
+export DB_URL='jdbc:mysql://localhost:3306/order_manager?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8'
+export DB_USERNAME='root'
+export DB_PASSWORD='your_password'
+export JWT_SECRET='replace-with-a-random-secret-of-at-least-64-characters'
+export SETTINGS_ENCRYPTION_KEY='replace-with-a-random-settings-encryption-key'
+# Optional. Without this key, the AI assistant runs in local summary mode.
+export OPENAI_API_KEY='your-openai-api-key'
+export OPENAI_MODEL='gpt-4.1-mini'
 ```
 
 ### Step 4: Build and Run
@@ -377,6 +375,33 @@ The application starts at **http://localhost:8080** by default.
 # Check if the server is running
 curl http://localhost:8080/goods/page?pageNum=1&pageSize=10
 ```
+
+### Step 6: Open the Admin Web UI
+
+Open `http://localhost:8080/` in a browser and log in with an account whose
+`sys_user.role` is `1`.
+
+The front end is bundled as static resources and does not require Node.js.
+The workspace includes:
+
+- Business overview and recent order/stock risk panels
+- Order filtering, detail drawer, and delivery actions
+- Product statistics, status/low-stock filters, search, creation, editing,
+  shelf status, and protected deletion with inventory maintenance
+- User search, freeze, and unfreeze actions
+- Customer address-book search, filtering, pagination, and read-only detail lookup
+- Persistent system settings for branding, order timeouts, stock alerts, and AI API access
+- AI assistant with quick prompts and visible read-only query evidence
+
+A clearly labelled interface preview is also available at:
+
+```
+http://localhost:8080/?preview=1
+```
+
+Preview mode uses front-end demo data and does not call the real AI endpoint.
+The normal login page uses the real backend for authentication, AI status,
+business queries, and audit logging.
 
 ## API Reference
 
@@ -427,7 +452,10 @@ Content-Type: application/json
 ```json
 {
   "code": "200",
-  "data": null,
+  "data": {
+    "userId": 2122250573444435970,
+    "username": "zhangsan"
+  },
   "msg": "注册成功"
 }
 ```
@@ -461,6 +489,10 @@ Content-Type: application/json
 {
   "code": "200",
   "data": {
+    "userId": 2122250573444435970,
+    "username": "zhangsan",
+    "nickname": "张三",
+    "role": 0,
     "token": "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsInJvbGUiOjAsInVzZXJuYW1lIjoiemhhbmdzYW4ifQ.xxxxx"
   },
   "msg": "登录成功"
@@ -521,7 +553,7 @@ GET /goods/page?pageNum=1&pageSize=10&goodsName=keyword
 All endpoints below require the `Authorization` header:
 
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.xxxxx
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.xxxxx
 ```
 
 #### User Logout
@@ -554,7 +586,7 @@ Content-Type: application/json
 
 {
   "goodsId": 1,
-  "num": 2
+  "buyNum": 2
 }
 ```
 
@@ -570,12 +602,14 @@ Authorization: Bearer <token>
   "code": "200",
   "data": [
     {
-      "id": 1,
+      "cartId": 1,
       "goodsId": 1,
       "goodsName": "iPhone 15",
-      "goodsPrice": 5999.00,
+      "price": 5999.00,
       "picUrl": "https://example.com/iphone15.jpg",
       "buyNum": 2,
+      "stock": 100,
+      "status": 1,
       "subtotal": 11998.00
     }
   ],
@@ -591,8 +625,15 @@ Content-Type: application/json
 
 {
   "goodsId": 1,
-  "num": 5
+  "buyNum": 5
 }
+```
+
+Delete a cart item:
+
+```
+DELETE /cart/{goodsId}
+Authorization: Bearer <token>
 ```
 
 ---
@@ -648,7 +689,13 @@ Content-Type: application/json
 ```json
 {
   "code": "200",
-  "data": 1,
+  "data": {
+    "orderId": 2122250574035832833,
+    "orderNo": "ORD2122250574035832833",
+    "payAmount": 11998.00,
+    "status": 0,
+    "paymentDeadline": "2024-01-15T11:00:00"
+  },
   "msg": "下单成功"
 }
 ```
@@ -663,6 +710,14 @@ Content-Type: application/json
 ```
 
 > The order creation process uses optimistic locking for stock deduction. Under high concurrency, stock conflicts will return a "please refresh" message.
+
+**Pay Order (simulation):**
+```
+POST /order/pay/{orderId}
+Authorization: Bearer <token>
+```
+
+> Payment is atomic and only succeeds for the order owner while it is pending and within the payment window. An order can only transition from status `0` to `1` once.
 
 **My Orders (Paginated):**
 ```
@@ -722,6 +777,8 @@ Authorization: Bearer <token>
 
 > Only orders with status `0 (Pending)` can be cancelled. Stock is automatically restored upon cancellation.
 
+> Repeated cancellation requests are idempotent and will not restore stock a second time.
+
 **Confirm Receipt:**
 ```
 PUT /order/confirm/{orderId}
@@ -770,6 +827,7 @@ PUT /admin/status/1?status=1     # Put on shelf
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/admin/order/page` | List all orders (paginated) |
+| GET | `/admin/order/detail/{orderId}` | Get any order with item details |
 | PUT | `/admin/order/deliver/{orderId}` | Mark order as delivered |
 | GET | `/admin/order/statistics` | Get sales statistics |
 
@@ -794,6 +852,64 @@ Authorization: Bearer <admin-token>
 ```
 
 > Only orders with status `1 (Paid)` can be delivered.
+
+#### AI Operations Assistant
+
+The assistant uses read-only, fixed business tools. It can query business statistics, orders, low-stock products, and sales trends, but cannot execute arbitrary SQL or modify business data.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/admin/ai/status` | Check whether OpenAI or local mode is active |
+| POST | `/admin/ai/assistant` | Ask a natural-language operations question |
+
+**Ask the assistant:**
+```json
+POST /admin/ai/assistant
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "message": "列出待发货订单，并告诉我哪些商品库存低于10件"
+}
+```
+
+**Response:**
+```json
+{
+  "code": "200",
+  "data": {
+    "answer": "当前有 3 笔待发货订单...",
+    "mode": "openai",
+    "model": "gpt-4.1-mini",
+    "configured": true,
+    "durationMs": 1840,
+    "evidence": [
+      {
+        "name": "query_orders",
+        "arguments": { "status": 1, "limit": 10 },
+        "result": {
+          "total": 3,
+          "orders": []
+        }
+      }
+    ]
+  },
+  "msg": "查询成功"
+}
+```
+
+When `OPENAI_API_KEY` is absent, or the remote service is temporarily unavailable, the same endpoint returns a deterministic local business summary with `mode: "local"`. Every request is recorded in `ai_operation_log` for audit and troubleshooting.
+
+#### System Settings
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/settings/public` | Read the public system name and support contact |
+| GET | `/admin/settings` | Read administrator settings |
+| PUT | `/admin/settings` | Update system and AI configuration |
+
+AI API Key is encrypted before storage and is never returned as plaintext. Saving a blank
+API Key keeps the existing key; use `clearAiApiKey=true` to remove it explicitly.
 
 #### User Management
 
@@ -917,9 +1033,30 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://your-db-host:3306/order_manager?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true
+    url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: 7200000
+
+settings:
+  encryption-key: ${SETTINGS_ENCRYPTION_KEY}
+
+ai:
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-4.1-mini}
+    timeout-seconds: 60
+  rate-limit-per-minute: 30
+
+order:
+  payment-timeout-minutes: 30
+
+app:
+  cors:
+    allowed-origin-patterns: http://localhost:3000,http://localhost:5173
 
 mybatis-plus:
   configuration:
@@ -934,7 +1071,7 @@ mybatis-plus:
 - Ensure the `order_manager` database exists
 
 **Table 'order_manager.xxx' doesn't exist**
-- Run `fix_schema.sql` to initialize tables: `mysql -u root -p order_manager < fix_schema.sql`
+- Run `fix_schema.sql` to initialize all tables: `mysql -u root -p < fix_schema.sql`
 
 **Port 8080 already in use**
 - Change the port: add `server.port=8081` to `application.yml`

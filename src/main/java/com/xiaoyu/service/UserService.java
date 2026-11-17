@@ -12,7 +12,7 @@ public interface UserService {
 
     /*
     * 用户登出服务*/
-    Result logout(String token);
+    Result logout();
 
     /*
     * 用户注册服务

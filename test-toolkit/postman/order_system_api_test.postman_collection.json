@@ -1029,7 +1029,7 @@
 							},
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"body": {
@@ -1050,8 +1050,8 @@
 									"pm.test('创建订单成功', function() {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.code).to.eql('200');",
-									"    if (jsonData.data && jsonData.data.orderNo) {",
-									"        pm.collectionVariables.set('testOrderId', jsonData.data.orderNo);",
+									"    if (jsonData.data && jsonData.data.orderId) {",
+									"        pm.collectionVariables.set('testOrderId', jsonData.data.orderId);",
 									"    }",
 									"});"
 								]
@@ -1060,7 +1060,37 @@
 					]
 				},
 				{
-					"name": "TC-ORDER-002 创建订单-收件人为空",
+					"name": "TC-ORDER-002 支付订单（模拟）",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{userToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/order/pay/{{testOrderId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["order", "pay", "{{testOrderId}}"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('支付成功', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql('200');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "TC-ORDER-003 创建订单-收件人为空",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1070,7 +1100,7 @@
 							},
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"body": {
@@ -1085,7 +1115,7 @@
 					}
 				},
 				{
-					"name": "TC-ORDER-003 创建订单-商品列表为空",
+					"name": "TC-ORDER-004 创建订单-商品列表为空",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1095,7 +1125,7 @@
 							},
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"body": {
@@ -1110,7 +1140,7 @@
 					}
 				},
 				{
-					"name": "TC-ORDER-004 创建订单-buyNum为0",
+					"name": "TC-ORDER-005 创建订单-buyNum为0",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1120,7 +1150,7 @@
 							},
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"body": {
@@ -1135,13 +1165,13 @@
 					}
 				},
 				{
-					"name": "TC-ORDER-005 查询我的订单",
+					"name": "TC-ORDER-006 查询我的订单",
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"url": {
@@ -1156,13 +1186,13 @@
 					}
 				},
 				{
-					"name": "TC-ORDER-006 查询订单-按状态筛选",
+					"name": "TC-ORDER-007 查询订单-按状态筛选",
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"url": {
@@ -1178,13 +1208,13 @@
 					}
 				},
 				{
-					"name": "TC-ORDER-007 查询订单-pageNum为空",
+					"name": "TC-ORDER-008 查询订单-pageNum为空",
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"url": {
@@ -1198,64 +1228,64 @@
 					}
 				},
 				{
-					"name": "TC-ORDER-008 订单详情",
+					"name": "TC-ORDER-009 订单详情",
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/order/detail/1",
+							"raw": "{{baseUrl}}/order/detail/{{testOrderId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["order", "detail", "1"]
+							"path": ["order", "detail", "{{testOrderId}}"]
 						}
 					}
 				},
 				{
-					"name": "TC-ORDER-009 取消订单",
+					"name": "TC-ORDER-010 取消订单",
 					"request": {
 						"method": "PUT",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/order/cancel/1",
+							"raw": "{{baseUrl}}/order/cancel/{{testOrderId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["order", "cancel", "1"]
+							"path": ["order", "cancel", "{{testOrderId}}"]
 						}
 					}
 				},
 				{
-					"name": "TC-ORDER-010 确认收货",
+					"name": "TC-ORDER-011 确认收货",
 					"request": {
 						"method": "PUT",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/order/confirm/1",
+							"raw": "{{baseUrl}}/order/confirm/{{testOrderId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["order", "confirm", "1"]
+							"path": ["order", "confirm", "{{testOrderId}}"]
 						}
 					}
 				},
 				{
-					"name": "TC-ORDER-011 订单详情-不存在的ID",
+					"name": "TC-ORDER-012 订单详情-不存在的ID",
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
+								"value": "Bearer {{userToken}}"
 							}
 						],
 						"url": {
@@ -1266,7 +1296,7 @@
 					}
 				},
 				{
-					"name": "TC-ORDER-012 未登录访问订单(应返回401)",
+					"name": "TC-ORDER-013 未登录访问订单(应返回401)",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -1297,7 +1327,68 @@
 			]
 		},
 		{
-			"name": "06-地址模块",
+			"name": "06-AI运营助手(需管理员)",
+			"item": [
+				{
+					"name": "TC-AI-001 助手运行状态",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/ai/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "ai", "status"]
+						}
+					}
+				},
+				{
+					"name": "TC-AI-002 查询经营概览",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"请给我一份经营概览，并提示库存风险\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/ai/assistant",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "ai", "assistant"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('运营助手应答成功', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql('200');",
+									"    pm.expect(jsonData.data.answer).to.be.a('string');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "07-地址模块",
 			"item": [
 				{
 					"name": "TC-ADDR-001 添加地址",
@@ -1578,7 +1669,7 @@
 			]
 		},
 		{
-			"name": "07-接口兼容性验证",
+			"name": "08-接口兼容性验证",
 			"description": "验证统一返回格式、状态码规范",
 			"item": [
 				{

@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @TableName("user_address")
 @Data
 public class UserAddress {
@@ -15,5 +17,5 @@ public class UserAddress {
     private String phone;
     private String address;
     private Integer isDefault;
-    private String createTime;
+    private LocalDateTime createTime;
 }

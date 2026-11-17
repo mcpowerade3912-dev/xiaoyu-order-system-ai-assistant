@@ -93,6 +93,7 @@ public class OrderSystemFullTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("200"))
                 .andExpect(jsonPath("$.msg").value("注册成功"))
+                .andExpect(jsonPath("$.data.password").doesNotExist())
                 .andReturn();
     }
 
@@ -238,12 +239,11 @@ public class OrderSystemFullTest {
     @DisplayName("TC-USER-013 登出后Token验证")
     void testLogout_TokenInvalid() throws Exception {
         assertNotNull(userToken, "需要先执行登出");
-        // 登出后，拦截器会检查数据库中的logoutTime
-        // 如果logoutTime不为空，返回401；否则允许访问
-        // 注意：此测试验证登出机制存在，具体行为取决于拦截器实现
+        // 登出后，拦截器会检查数据库中的 logoutTime
         mockMvc.perform(get("/address/list")
                         .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("401"));
     }
 
     @Test
@@ -291,20 +291,22 @@ public class OrderSystemFullTest {
     @Order(42)
     @DisplayName("TC-GOODS-003 商品分页-pageNum为空")
     void testGoodsPage_NullPageNum() throws Exception {
-        // pageNum为空时，Spring返回400 Bad Request
+        // 缺省时使用默认页码
         mockMvc.perform(get("/goods/page")
                         .param("pageSize", "10"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("200"));
     }
 
     @Test
     @Order(43)
     @DisplayName("TC-GOODS-004 商品分页-pageSize为空")
     void testGoodsPage_NullPageSize() throws Exception {
-        // pageSize为空时，Spring返回400 Bad Request
+        // 缺省时使用默认每页条数
         mockMvc.perform(get("/goods/page")
                         .param("pageNum", "1"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("200"));
     }
 
     @Test
@@ -1051,7 +1053,8 @@ public class OrderSystemFullTest {
                         .param("pageNum", "1")
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("200"));
+                .andExpect(jsonPath("$.code").value("200"))
+                .andExpect(jsonPath("$.data.records[0].password").doesNotExist());
     }
 
     @Test

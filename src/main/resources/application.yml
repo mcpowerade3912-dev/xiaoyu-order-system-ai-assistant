@@ -1,13 +1,39 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/order_manager?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true
-    username: root
-    password: 123456
+    url: "${DB_URL:jdbc:mysql://localhost:3306/order_manager?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8}"
+    username: "${DB_USERNAME:root}"
+    password: "${DB_PASSWORD:123456}"
     type: com.alibaba.druid.pool.DruidDataSource
 
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+jwt:
+  secret: "${JWT_SECRET:dev-only-jwt-secret-change-me-in-production-0123456789-abcdefghijklmnopqrstuvwxyz}"
+  expiration-ms: "${JWT_EXPIRATION_MS:7200000}"
+
+order:
+  payment-timeout-minutes: "${ORDER_PAYMENT_TIMEOUT_MINUTES:30}"
+  cancel-scan-ms: "${ORDER_CANCEL_SCAN_MS:60000}"
+  cancel-scan-initial-delay-ms: "${ORDER_CANCEL_SCAN_INITIAL_DELAY_MS:60000}"
+  expired-scan-batch-size: "${ORDER_EXPIRED_SCAN_BATCH_SIZE:100}"
+
+app:
+  cors:
+    allowed-origin-patterns: "${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:3000,http://localhost:5173}"
+
+ai:
+  openai:
+    api-key: "${OPENAI_API_KEY:}"
+    base-url: "${OPENAI_BASE_URL:https://api.openai.com/v1}"
+    model: "${OPENAI_MODEL:gpt-4.1-mini}"
+    timeout-seconds: "${OPENAI_TIMEOUT_SECONDS:60}"
+    max-tool-rounds: 3
+  rate-limit-per-minute: "${AI_RATE_LIMIT_PER_MINUTE:30}"
+
+settings:
+  encryption-key: "${SETTINGS_ENCRYPTION_KEY:dev-only-settings-encryption-key-change-in-production-0123456789}"
 

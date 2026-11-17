@@ -28,6 +28,12 @@ public class AdminOrderController {
         return orderService.deliverOrder(orderId);
     }
 
+    // 管理员订单详情
+    @GetMapping("/detail/{orderId}")
+    public Result detail(@PathVariable Long orderId) {
+        return orderService.getAdminOrderDetail(orderId);
+    }
+
     // 订单数据统计
     @GetMapping("/statistics")
     public Result statistics() {

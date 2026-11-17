@@ -5,6 +5,8 @@ import com.xiaoyu.common.Result;
 import com.xiaoyu.pojo.Goods;
 import com.xiaoyu.dto.GoodsDto;
 
+import java.util.Map;
+
 /*买家端商品分页查询*/
 public interface GoodsService {
     Page<Goods> getGoodsPage(GoodsDto dto);
@@ -21,4 +23,12 @@ public interface GoodsService {
     // 商品上下架
     Result updateGoodsStatus(Long goodsId, Integer status);
 
+    // 商品详情
+    Result getGoodsDetail(Long goodsId);
+
+    // 删除未被历史订单引用的商品
+    Result deleteGoods(Long goodsId);
+
+    // 管理端商品和库存统计
+    Map<String, Object> getAdminGoodsStatistics();
 }

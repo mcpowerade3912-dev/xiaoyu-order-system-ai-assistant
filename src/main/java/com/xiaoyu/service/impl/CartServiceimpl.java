@@ -3,6 +3,7 @@ package com.xiaoyu.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiaoyu.Dao.CartDao;
 import com.xiaoyu.Dao.GoodsDao;
+import com.xiaoyu.common.BusinessException;
 import com.xiaoyu.common.Code;
 import com.xiaoyu.common.Result;
 import com.xiaoyu.dto.CartDto;
@@ -12,11 +13,16 @@ import com.xiaoyu.service.CartService;
 import com.xiaoyu.utils.UserContext;
 import com.xiaoyu.vo.CartVo;
 import org.springframework.stereotype.Service;
+
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
-
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
-
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class CartServiceimpl implements CartService {
@@ -27,132 +33,125 @@ public class CartServiceimpl implements CartService {
     @Resource
     private UserContext userContext;
 
-    /*添加商品大到购物车*/
-    public Result addCart(CartDto cartDto){
-        //获取当前用户ID
+    @Override
+    public Result addCart(CartDto cartDto) {
         Long userId = userContext.getUserId();
-        //获取商品信息
-        Goods goods = goodsDao.selectById(cartDto.getGoodsId());
+        Goods goods = requireAvailableGoods(cartDto.getGoodsId());
+        UserCart cart = findCart(userId, cartDto.getGoodsId());
 
-//        System.out.println("===查询条件===");
-//        System.out.println("登录用户ID：" + userId);
-//        System.out.println("前端传的商品ID：" + cartDto.getGoodsId());
-
-        //判断商品是否存在
-        if(goods == null){
-            return new Result("500","商品不存在");
-        }
-        //判断商品是否下架
-        if(goods.getStatus() != 1){
-            return new Result("500","商品已下架");
-        }
-        LambdaQueryWrapper<UserCart> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(UserCart::getGoodsId,cartDto.getGoodsId()).eq(UserCart::getUserId,userId);
-        UserCart exitcart = cartDao.selectOne(queryWrapper);
-
-//        System.out.println("查询到购物车：" + exitcart);
-//        System.out.println("buy_num值：" + exitcart.getBuyNum());
-
-        //判断商品是否已存在购物车
-        //如果存在
-        if(exitcart != null){
-            //累加数量
-            int totalMun = exitcart.getBuyNum() + cartDto.getBuyNum();
-            //判断库存
-            if(totalMun > goods.getStock()){
-                return new Result("500","商品库存不足");
+        int totalNum = cartDto.getBuyNum();
+        if (cart != null) {
+            try {
+                totalNum = Math.addExact(cart.getBuyNum(), cartDto.getBuyNum());
+            } catch (ArithmeticException e) {
+                throw new BusinessException("购物车商品数量超出允许范围");
             }
-            exitcart.setBuyNum(totalMun);
-            cartDao.updateById(exitcart);
+        }
+        if (totalNum > goods.getStock()) {
+            throw new BusinessException("商品库存不足");
+        }
 
-            CartVo cartVo = new CartVo();
-            cartVo.setCartId(exitcart.getId());
-            cartVo.setGoodsId(exitcart.getGoodsId());
-            cartVo.setGoodsName(goods.getGoodsName());
-            cartVo.setPicUrl(goods.getPic_url());
-            cartVo.setPrice(goods.getPrice());
-            cartVo.setBuyNum(exitcart.getBuyNum());
-            cartVo.setStock(goods.getStock());
-            cartVo.setCreateTime(LocalDateTime.now());
-            return new Result(Code.SUCCESS,cartVo, "加入购物车成功");
-        }else{
-            if(cartDto.getBuyNum() > goods.getStock()){
-                return new Result("500","商品库存不足");
-            }
-            UserCart cart = new UserCart();
+        if (cart == null) {
+            cart = new UserCart();
             cart.setUserId(userId);
             cart.setGoodsId(cartDto.getGoodsId());
-            cart.setBuyNum(cartDto.getBuyNum());
+            cart.setBuyNum(totalNum);
             cartDao.insert(cart);
-
-            CartVo cartVo = new CartVo();
-            cartVo.setCartId(cart.getId());
-            cartVo.setGoodsId(cart.getGoodsId());
-            cartVo.setGoodsName(goods.getGoodsName());
-            cartVo.setPicUrl(goods.getPic_url());
-            cartVo.setPrice(goods.getPrice());
-            cartVo.setBuyNum(cart.getBuyNum());
-            cartVo.setStock(goods.getStock());
-            cartVo.setCreateTime(LocalDateTime.now());
-
-            return new Result(Code.SUCCESS,cartVo, "加入购物车成功");
+        } else {
+            cart.setBuyNum(totalNum);
+            cartDao.updateById(cart);
         }
+        return new Result(Code.SUCCESS, toCartVo(cart, goods), "加入购物车成功");
     }
 
-    /*查询购物车*/
-    public Result getListCart(CartDto cart){
+    @Override
+    public Result getListCart() {
         Long userId = userContext.getUserId();
-        LambdaQueryWrapper<UserCart> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(UserCart::getUserId,userId);
-        List<UserCart> carts = cartDao.selectList(queryWrapper);
-        return new Result(Code.SUCCESS,carts, "查询购物车成功");
+        LambdaQueryWrapper<UserCart> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserCart::getUserId, userId)
+                .orderByDesc(UserCart::getCreateTime);
+        List<UserCart> carts = cartDao.selectList(wrapper);
+        if (carts.isEmpty()) {
+            return new Result(Code.SUCCESS, Collections.emptyList(), "查询购物车成功");
+        }
+
+        Set<Long> goodsIds = carts.stream()
+                .map(UserCart::getGoodsId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<Long, Goods> goodsMap = goodsDao.selectBatchIds(goodsIds).stream()
+                .collect(Collectors.toMap(Goods::getId, Function.identity()));
+        List<CartVo> result = carts.stream()
+                .map(cart -> toCartVo(cart, goodsMap.get(cart.getGoodsId())))
+                .collect(Collectors.toList());
+        return new Result(Code.SUCCESS, result, "查询购物车成功");
     }
 
-    /*修改购物车数量*/
-    public Result updateCartNum(CartDto dto){
+    @Override
+    public Result updateCartNum(CartDto dto) {
         Long userId = userContext.getUserId();
-
-        LambdaQueryWrapper<UserCart> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(UserCart::getGoodsId,dto.getGoodsId()).eq(UserCart::getUserId,userId);
-        UserCart cart = cartDao.selectOne(queryWrapper);
-        if( cart == null){
-            return new Result("500","购物车记录不存在");
+        UserCart cart = findCart(userId, dto.getGoodsId());
+        if (cart == null) {
+            throw new BusinessException("购物车记录不存在");
         }
-        //判断商品状态
-        Goods goods = goodsDao.selectById(dto.getGoodsId());
-        if(goods == null){
-            return new Result("500","商品不存在");
-        }
-        if(goods.getStatus() != 1){
-            return new Result("500","商品已下架");
-        }
-        if(dto.getBuyNum() > goods.getStock()){
-            return new Result("500","商品库存不足");
+        Goods goods = requireAvailableGoods(dto.getGoodsId());
+        if (dto.getBuyNum() > goods.getStock()) {
+            throw new BusinessException("商品库存不足");
         }
         cart.setBuyNum(dto.getBuyNum());
         cartDao.updateById(cart);
-        CartVo cartVo = new CartVo();
-        cartVo.setCartId(cart.getId());
-        cartVo.setGoodsId(cart.getGoodsId());
-        cartVo.setGoodsName(goods.getGoodsName());
-        cartVo.setPicUrl(goods.getPic_url());
-        cartVo.setPrice(goods.getPrice());
-        cartVo.setStock(goods.getStock());
-        cartVo.setBuyNum(cart.getBuyNum());
-        cartVo.setCreateTime(LocalDateTime.now());
-        return new Result(Code.SUCCESS,cartVo, "修改购物车数量成功");
+        return new Result(Code.SUCCESS, toCartVo(cart, goods), "修改购物车数量成功");
     }
 
-    /*删除购物车内订单*/
-    public  Result deleteCart(CartDto cartDto){
+    @Override
+    public Result deleteCart(Long goodsId) {
         Long userId = userContext.getUserId();
-        LambdaQueryWrapper<UserCart> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(UserCart::getGoodsId,cartDto.getGoodsId()).eq(UserCart::getUserId,userId);
-        int count = cartDao.delete(queryWrapper);
-        if( count == 0){
-            return new Result("500","购物车记录不存在");
-        }else{
-            return new Result(Code.SUCCESS,"删除购物车成功");
+        LambdaQueryWrapper<UserCart> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserCart::getGoodsId, goodsId)
+                .eq(UserCart::getUserId, userId);
+        if (cartDao.delete(wrapper) == 0) {
+            throw new BusinessException("购物车记录不存在");
         }
+        return new Result(Code.SUCCESS, null, "删除购物车成功");
+    }
+
+    private UserCart findCart(Long userId, Long goodsId) {
+        LambdaQueryWrapper<UserCart> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserCart::getGoodsId, goodsId)
+                .eq(UserCart::getUserId, userId);
+        return cartDao.selectOne(wrapper);
+    }
+
+    private Goods requireAvailableGoods(Long goodsId) {
+        Goods goods = goodsDao.selectById(goodsId);
+        if (goods == null) {
+            throw new BusinessException("商品不存在");
+        }
+        if (!Integer.valueOf(1).equals(goods.getStatus())) {
+            throw new BusinessException("商品已下架");
+        }
+        return goods;
+    }
+
+    private CartVo toCartVo(UserCart cart, Goods goods) {
+        CartVo vo = new CartVo();
+        vo.setCartId(cart.getId());
+        vo.setGoodsId(cart.getGoodsId());
+        vo.setBuyNum(cart.getBuyNum());
+        vo.setCreateTime(cart.getCreateTime());
+        if (goods == null) {
+            vo.setGoodsName("商品已删除");
+            vo.setPrice(BigDecimal.ZERO);
+            vo.setStock(0);
+            vo.setStatus(0);
+            vo.setSubtotal(BigDecimal.ZERO);
+            return vo;
+        }
+        vo.setGoodsName(goods.getGoodsName());
+        vo.setPicUrl(goods.getPic_url());
+        vo.setPrice(goods.getPrice());
+        vo.setStock(goods.getStock());
+        vo.setStatus(goods.getStatus());
+        vo.setSubtotal(goods.getPrice().multiply(BigDecimal.valueOf(cart.getBuyNum())));
+        return vo;
     }
 }

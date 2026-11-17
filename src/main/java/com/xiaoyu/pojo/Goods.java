@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @TableName("goods")
@@ -23,8 +24,8 @@ public class Goods {
 
     private Integer status;
     @TableField("create_time")
-    private String createTime;
+    private LocalDateTime createTime;
 
     @TableField("update_time")
-    private String update_time;
+    private LocalDateTime updateTime;
 }

@@ -21,18 +21,17 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
         response.setContentType("application/json;charset=utf-8");
-        String authHeader = request.getHeader("Authorization");
-        System.out.println("header完整内容：[" + authHeader + "]");
-        System.out.println("是否匹配Bearer 开头：" + (authHeader != null && authHeader.startsWith("Bearer ")));
-        //获得请求头中的token
         String authorization = request.getHeader("Authorization");
         //判断token是否为空
         if(authorization == null || !authorization.startsWith("Bearer ")){
             response.getWriter().write("{\"code\":401,\"msg\":\"未登录，请登录\",\"data\":null}");
             return false;
         }
-        String token = authorization.replace("Bearer ","");
+        String token = authorization.substring(7);
         Claims claims;
         try {
             claims = jwtUtil.parseToken(token);
@@ -41,30 +40,20 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 解析失败返回null
-        if (claims == null) {
-            response.getWriter().write("{\"code\":401,\"msg\":\"未登录，请登录\",\"data\":null}");
+        // 读取 userId（JSON 反序列化后可能是 Integer 或 Long）
+        Long userId;
+        Object userIdObj = claims.get("userId");
+        if (userIdObj == null) {
+            response.getWriter().write("{\"code\":401,\"msg\":\"无效的登录凭证\",\"data\":null}");
             return false;
         }
-
-        // 1. 读取userId、role (JWT库可能返回Integer或Long，统一处理)
-        Long userId;
-        Integer role;
-        Object userIdObj = claims.get("userId");
-        Object roleObj = claims.get("role");
         if (userIdObj instanceof Integer) {
             userId = ((Integer) userIdObj).longValue();
         } else {
             userId = (Long) userIdObj;
         }
-        if (roleObj instanceof Integer) {
-            role = (Integer) roleObj;
-        } else {
-            role = ((Long) roleObj).intValue();
-        }
 
-        //查询用户登出状态
-        User user = userDao.selectById((Long)claims.get("userId"));
+        User user = userDao.selectById(userId);
         //判断用户是否存在
         if(user==null){
             response.getWriter().write("{\"code\":401,\"msg\":\"用户不存在，请重新登录\",\"data\":null}");
@@ -74,22 +63,25 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             response.getWriter().write("{\"code\":401,\"msg\":\"用户已登出，请重新登录\",\"data\":null}");
             return false;
         }
+        if(!Integer.valueOf(1).equals(user.getStatus())){
+            response.getWriter().write("{\"code\":403,\"msg\":\"用户已被冻结\",\"data\":null}");
+            return false;
+        }
 
-        //角色权限拦截
-        //拿到当前的请求路径
+        // 角色以数据库当前值为准，避免管理员降权后旧 Token 仍可访问
         String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/admin") && role != 1) {
+        if (requestURI.startsWith("/admin") && !Integer.valueOf(1).equals(user.getRole())) {
             response.getWriter().write("{\"code\":403,\"msg\":\"权限不足，该功能仅管理员可用\",\"data\":null}");
             return false;
         }
 
-        //存入上下文
+        claims.put("role", user.getRole());
         UserContext.setUser(claims);
         return true;
     }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
+        UserContext.clear();
     }
 }

@@ -20,6 +20,10 @@ public class CartVo {
     private Integer buyNum;
     /*商品库存*/
     private Integer stock;
+    /*商品状态：0下架 1上架*/
+    private Integer status;
+    /*小计*/
+    private BigDecimal subtotal;
     /*创建时间*/
     private LocalDateTime createTime;
 
